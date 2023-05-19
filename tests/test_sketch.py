@@ -708,6 +708,39 @@ def test_constraint_solver():
 
     assert s7._faces.isValid()
 
+    # Issue #1127 with Distance constraint providing invalid result
+    constrained_distance = 2
+    s8 = (
+        # Two segments that have a distance of 1
+        Sketch()
+        .segment((1, 2), (2, 2), "top")
+        .segment((2, 2), (2, 1), "right")
+        .segment((2, 1), (1, 1), "bottom")
+        .segment((1, 1), (1, 2), "left")
+    )
+    s8.constrain("bottom", "FixedPoint", 0)
+    s8.constrain("top", "Orientation", (1, 0))
+    s8.constrain("right", "Orientation", (0, -1))
+    s8.constrain("bottom", "Orientation", (-1, 0))
+    s8.constrain("left", "Orientation", (0, 1))
+
+    s8.constrain("top", "right", "Coincident", None)
+    s8.constrain("right", "bottom", "Coincident", None)
+    s8.constrain("bottom", "left", "Coincident", None)
+    s8.constrain("left", "top", "Coincident", None)
+
+    s8.constrain("top", "bottom", "Distance", (0.5, 0.5, constrained_distance))
+    s8.constrain("left", "right", "Distance", (0.5, 0.5, constrained_distance))
+    s8.solve()
+
+    assert s8._solve_status["status"] == 4
+
+    s8.assemble()
+    assert s8._faces.isValid()
+
+    # 2x2=4
+    assert s8._faces.Area() == approx(4)
+
 
 def test_dxf_import():
 
